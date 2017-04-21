@@ -27,6 +27,14 @@ var BLUE_RAMP = [ 16, 17, 17, 18, 18, 19, 19, 20, 20, 21, 27, 32, 33,
 var WORKING = false;
 var ANIM;
 
+// add a new method to the string class so we can get the lengths of
+// the lines as they'll actually be rendered
+
+String.prototype.rendered_length = function () {
+    var ec_re = /\x1b\[[\d\;]+m/g;
+    var copy = this.replace(ec_re, "");
+    return copy.length;
+}
 
 function
 load_deck()
@@ -236,7 +244,7 @@ text_right(text, row)
 	if (!text)
 		return;
 
-	TERM.moveto(-3 - text.length, row);
+	TERM.moveto(-3 - text.rendered_length(), row);
 	TERM.write(text);
 }
 
@@ -246,7 +254,7 @@ text_centre(text, row)
 	if (!text)
 		return;
 
-	TERM.moveto(Math.round(TERM.size().w / 2 - text.length / 2), row);
+	TERM.moveto(Math.round(TERM.size().w / 2 - text.rendered_length() / 2), row);
 	TERM.write(text);
 }
 
@@ -294,7 +302,7 @@ max_line_width(text)
 	var max = 1;
 	for (var i = 0; i < lines.length; i++) {
 		var line = lines[i].trimRight();
-		max = Math.max(max, line.length);
+		max = Math.max(max, line.rendered_length());
 	}
 	return (max);
 }
