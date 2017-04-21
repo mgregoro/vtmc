@@ -19,10 +19,10 @@ If no directory specified, the current working directory will be used.
 
 Control Keys:
 
-     j        next slide
-     k        previous slide
-     r        reload current slide
-     q        quit
+     j/n/>/<space>  next slide
+     k/p/<          previous slide
+     r              reload current slide
+     q              quit
 ```
 
 ## Screenshot
