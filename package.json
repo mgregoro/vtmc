@@ -14,7 +14,8 @@
   "homepage": "https://github.com/jclulow/vtmc",
   "dependencies": {
     "ansiterm": "~0.0.2",
-    "extsprintf": "~1.0.2"
+    "extsprintf": "~1.0.2",
+    "is-hyper": "~1.0.0"
   },
   "bin": {
     "vtmc": "./cmd/vtmc.js"

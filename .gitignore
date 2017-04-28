@@ -1,2 +1,4 @@
+._DS_Store
 node_modules/
 .*.swp
+**/._DS_Store

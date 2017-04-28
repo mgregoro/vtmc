@@ -1,6 +1,9 @@
 #!/usr/bin/env node
 /* vim: set ts=8 sts=8 sw=8 noet: */
 
+const is_hyper = require('is-hyper');
+const cproc = require('child_process');
+
 var mod_fs = require('fs');
 var mod_path = require('path');
 
@@ -315,19 +318,24 @@ parse_properties(propsline)
 	for (var i = 0; i < new_props.length; i++) {
 		var new_prop = new_props[i];
 
-		/*
-		 * Allow for international spellings of properties:
-		 */
-		switch (new_prop) {
-		case 'center':
-			new_prop = 'centre';
-			break;
-		case 'vcenter':
-			new_prop = 'vcentre';
-			break;
-		}
+        var cmd = new_prop.match(/^exec:([^\s]+)/);
+        if (!typeof(cmd) === "undefined" && cmd.length == 1) {
+            out[slide_cmd] = decodeURIComponent(cmd[0]);
+        } else {
+		    /*
+		     * Allow for international spellings of properties:
+		     */
+		    switch (new_prop) {
+		    case 'center':
+		    	new_prop = 'centre';
+		    	break;
+		    case 'vcenter':
+		    	new_prop = 'vcentre';
+		    	break;
+		    }
 
-		out[new_prop] = true;
+		    out[new_prop] = true;
+        }
 	}
 	return (out);
 }
@@ -361,6 +369,11 @@ switch_slide(name, callback)
 		callback(ex);
 		return;
 	}
+
+    if (new_slide.props.slide_cmd) {
+
+    }
+
 	fade(SLIDE, true, function () {
 		SLIDE = new_slide;
 		CURFILE = name;
@@ -492,31 +505,51 @@ setup_terminal()
  * Main program:
  */
 
+function usage () {
+    console.error('Usage: vtmc COMMAND [DIRECTORY]');
+    console.error('');
+    console.error('Commands:');
+    console.error('');
+    console.error('     help     show this page');
+    console.error('     show     present slideshow [default]');
+    console.error('     size     measure required terminal ' +
+            'size for deck');
+    console.error('');
+    console.error('If no directory specified, the current ' +
+            'working directory will be used.');
+    console.error('');
+    console.error('Control Keys:');
+    console.error('');
+    console.error('     j/n/>/<space>  next slide');
+    console.error('     k/p/<          previous slide');
+    console.error('     r              reload current slide');
+    console.error('     q              quit');
+    console.error('');
+    process.exit(1);
+}
+
 function
 main(argv)
 {
 	var command = argv[0];
 
+    if (command === 'help') {
+        usage();
+    }
+
+    // default behavior to show!  first arg can be a directory mayhaps!
+    if (command && (command !== 'show' && command !== 'size')) {
+        try {
+            DECK = load_deck(command);
+        } catch(ex) {
+            usage();
+        }
+    } else {
+        command = 'show';
+    }
+
 	if (command !== 'show' && command !== 'size') {
-		console.error('Usage: vtmc COMMAND [DIRECTORY]');
-		console.error('');
-		console.error('Commands:');
-		console.error('');
-		console.error('     show     present slideshow');
-		console.error('     size     measure required terminal ' +
-		    'size for deck');
-		console.error('');
-		console.error('If no directory specified, the current ' +
-		    'working directory will be used.');
-		console.error('');
-		console.error('Control Keys:');
-		console.error('');
-		console.error('     j/n/>/<space>  next slide');
-		console.error('     k/p/<          previous slide');
-		console.error('     r              reload current slide');
-		console.error('     q              quit');
-		console.error('');
-		process.exit(1);
+        usage();
 	}
 
 	DECKDIR = argv[1] ? argv[1] : process.cwd();
@@ -529,7 +562,7 @@ main(argv)
 		process.exit(5);
 	}
 
-	if (argv[0] === 'show') {
+	if (command === 'show') {
 		setup_terminal();
 		check_size(TERM.size());
 	} else {
