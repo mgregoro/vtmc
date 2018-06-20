@@ -19,29 +19,29 @@ var CURFILE;
 var SLIDE;
 
 var TERM;
+var LIGHT = false;
 
 var INTENSITY = 232;
 var IMAX = 255;
 var IMIN = 232;
 
-var BLUE_RAMP = [ 16, 17, 17, 18, 18, 19, 19, 20, 20, 21, 27, 32, 33,
+var BLUE_RAMP = [ 17, 17, 17, 18, 18, 19, 19, 20, 20, 21, 27, 32, 33,
     38, 39, 44, 45, 45, 81, 81, 51, 51, 123, 123 ];
 
 var WORKING = false;
 var ANIM;
 
+
 // add a new method to the string class so we can get the lengths of
 // the lines as they'll actually be rendered
-
 String.prototype.rendered_length = function () {
     var ec_re = /\x1b\[[\d\;]+m/g;
     var copy = this.replace(ec_re, "");
     return copy.length;
 }
 
-function
-load_deck()
-{
+
+function load_deck() {
 	var file = mod_path.join(DECKDIR, 'deck.json');
 	var str = mod_fs.readFileSync(file, 'utf8');
 	var deck = JSON.parse(str);
@@ -61,9 +61,7 @@ load_deck()
 	return (deck);
 }
 
-function
-list_files()
-{
+function list_files() {
 	var ents = mod_fs.readdirSync(DECKDIR);
 	var out = [];
 
@@ -79,9 +77,7 @@ list_files()
 	return (out);
 }
 
-function
-prev_file()
-{
+function prev_file() {
 	var files = list_files();
 
 	if (!files || files.length < 1)
@@ -105,9 +101,7 @@ prev_file()
 	return (files[idx - 1]);
 }
 
-function
-next_file()
-{
+function next_file() {
 	var files = list_files();
 
 	if (!files || files.length < 1)
@@ -126,31 +120,23 @@ next_file()
 	return (files[idx + 1]);
 }
 
-function
-blue_ramp(ival)
-{
+function blue_ramp(ival) {
 	return (BLUE_RAMP[ival - IMIN]);
 }
 
-function
-write_text(text, blue, intensity)
-{
+function write_text(text, blue, intensity) {
 	TERM.colour256(blue ? blue_ramp(intensity) : intensity);
 	TERM.write(text);
 }
 
-function
-write_heading(text, intensity, voffset)
-{
+function write_heading(text, intensity, voffset) {
 	var toffset = Math.round(TERM.size().w / 2 - text.length / 2);
 
 	TERM.moveto(1 + toffset, voffset);
 	write_text(text, true, intensity);
 }
 
-function
-write_line(line, intensity, offset, voffset)
-{
+function write_line(line, intensity, offset, voffset) {
 	var blue_on = false;
 	var escape = false;
 	var partial = '';
@@ -191,9 +177,7 @@ write_line(line, intensity, offset, voffset)
 		write_text(partial, blue_on, intensity);
 }
 
-function
-fade(slide, out, callback)
-{
+function fade(slide, out, callback) {
 	var delay = 15;
 	if (DECK.fade && DECK.fade.delay)
 		delay = DECK.fade.delay;
@@ -219,21 +203,29 @@ fade(slide, out, callback)
 			    1 + offset, voffset + i);
 		}
 
-		if ((out && INTENSITY <= IMIN) ||
-		    (!out && INTENSITY >= IMAX)) {
-			clearInterval(ANIM);
-			ANIM = null;
-			callback();
-			return;
+		if (LIGHT) {
+			if ((!out && INTENSITY <= IMIN) ||
+			    (out && INTENSITY >= IMAX)) {
+				clearInterval(ANIM);
+				ANIM = null;
+				callback();
+				return;
+			}
+			INTENSITY += out ? 1 : -1;
+		} else {
+			if ((out && INTENSITY <= IMIN) ||
+			    (!out && INTENSITY >= IMAX)) {
+				clearInterval(ANIM);
+				ANIM = null;
+				callback();
+				return;
+			}
+			INTENSITY += out ? -1 : 1;
 		}
-
-		INTENSITY += out ? -1 : 1;
 	}, delay);
 }
 
-function
-text_left(text, row)
-{
+function text_left(text, row) {
 	if (!text)
 		return;
 
@@ -241,9 +233,7 @@ text_left(text, row)
 	TERM.write(text);
 }
 
-function
-text_right(text, row)
-{
+function text_right(text, row) {
 	if (!text)
 		return;
 
@@ -251,9 +241,7 @@ text_right(text, row)
 	TERM.write(text);
 }
 
-function
-text_centre(text, row)
-{
+function text_centre(text, row) {
 	if (!text)
 		return;
 
@@ -261,9 +249,7 @@ text_centre(text, row)
 	TERM.write(text);
 }
 
-function
-draw_surrounds()
-{
+function draw_surrounds() {
 	var row;
 
 	TERM.colour256(208); /* XXX maybe people don't just want orange? */
@@ -282,9 +268,7 @@ draw_surrounds()
 }
 
 
-function
-display_slide(text, callback)
-{
+function display_slide(text, callback) {
 	TERM.clear();
 	draw_surrounds();
 
@@ -298,9 +282,7 @@ display_slide(text, callback)
 	});
 }
 
-function
-max_line_width(text)
-{
+function max_line_width(text) {
 	var lines = text.split(/\n/);
 	var max = 1;
 	for (var i = 0; i < lines.length; i++) {
@@ -310,9 +292,7 @@ max_line_width(text)
 	return (max);
 }
 
-function
-parse_properties(propsline)
-{
+function parse_properties(propsline) {
 	var out = {};
 	var new_props = propsline.trim().split(/\s+/);
 	for (var i = 0; i < new_props.length; i++) {
@@ -340,9 +320,7 @@ parse_properties(propsline)
 	return (out);
 }
 
-function
-switch_slide(name, callback)
-{
+function switch_slide(name, callback) {
 	var new_slide;
 	var new_props;
 
@@ -387,9 +365,7 @@ switch_slide(name, callback)
 	});
 }
 
-function
-find_bounds(print_each)
-{
+function find_bounds(print_each) {
 	var maxw = 0;
 	var maxh = 0;
 
@@ -419,9 +395,7 @@ find_bounds(print_each)
 	});
 }
 
-function
-check_size(size)
-{
+function check_size(size) {
 	TERM.clear();
 	WORKING = true;
 	if (ANIM) {
@@ -455,9 +429,7 @@ check_size(size)
 	}
 }
 
-function
-setup_terminal()
-{
+function setup_terminal() {
 		TERM = new mod_ansiterm.ANSITerm();
 
 		TERM.clear();
@@ -512,6 +484,7 @@ function usage () {
     console.error('');
     console.error('     help     show this page');
     console.error('     show     present slideshow [default]');
+    console.error('     shine    present slideshow on white background');
     console.error('     size     measure required terminal ' +
             'size for deck');
     console.error('');
@@ -548,12 +521,12 @@ main(argv)
         command = 'show';
     }
 
-	if (command !== 'show' && command !== 'size') {
+	if (command !== 'show' && command !== 'shine' && command !== 'size') {
         usage();
 	}
 
 	DECKDIR = argv[1] ? argv[1] : process.cwd();
-
+    
 	try {
 		DECK = load_deck();
 	} catch (ex) {
@@ -563,6 +536,11 @@ main(argv)
 	}
 
 	if (command === 'show') {
+		setup_terminal();
+		check_size(TERM.size());
+	} else if (argv[0] === 'shine') {
+		LIGHT = true;
+		INTENSITY = 255;
 		setup_terminal();
 		check_size(TERM.size());
 	} else {
